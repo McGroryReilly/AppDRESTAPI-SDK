@@ -7,6 +7,7 @@ import org.appdynamics.appdrestapi.util.PostEvent;
 import java.util.HashMap;
 import java.util.Map;
 import java.util.Calendar;
+import java.util.Map.Entry;
 
 
 /**
@@ -69,8 +70,7 @@ public class GetOneHourOfData {
 		String account = GetOneHourOfData.ACCOUNT;
 
 		String site = "/";
-		access = new RESTAccess(controller, port, useSSL, user, password,
-				account);
+		access = new RESTAccess(controller, port, useSSL, user, password, account);
 
 	}
 
@@ -94,11 +94,14 @@ public class GetOneHourOfData {
 		Map<String,String> rowMap = runner.getOneHourForApplication("XfinityConnect", startTime, endTime);
 	}
 
+	
 	public Map<String,String> getOneHourForApplication(String appName, long beginTime, long endTime) {
 		
 		//System.out.printf("%s, %s, %s, %s,  %s \n", row);
 		
 		Map<String,String> aiRow = new HashMap<String,String>();
+		
+		
 		for (int i = 0; i < PERFORMANCE_METRIC_PATH.length; i++) {
 			MetricDatas appResponseTime = access.getRESTGenericMetricQuery(appName,PERFORMANCE_METRIC_PATH[i], beginTime, endTime, true);
 			long max = appResponseTime.getSingleRollUpMetricValue().getMax();
@@ -106,9 +109,8 @@ public class GetOneHourOfData {
 			long min = appResponseTime.getSingleRollUpMetricValue().getMin();
 			double stdDev = appResponseTime.getSingleRollUpMetricValue().getStdDev();
 			String name = PERFORMANCE_METRIC_PATH[i];
-			Object[] row = new Object[]{name, new Long(value), new Long(min), new Long(max), new Double(stdDev)};
+			aiRow.put(name, new Long(value).toString());
 			
-			System.out.printf("%s,\t%s,\t%s,\t%s,\t%s \n", row);
 
 		}
 		
@@ -119,13 +121,17 @@ public class GetOneHourOfData {
 		Object[] args = {new Integer(eventCount), eventQuery};
 		System.out.printf("Application has %s %s events", args);
 		System.out.println("");
+		aiRow.put(eventQuery+"EVENT_COUNT",  new Integer(eventCount).toString());
+		
 		eventQuery = "POLICY_OPEN_WARNING";
 		Events warningEvents = access.getEvents(appName, eventQuery, "INFO,WARN,ERROR", beginTime, endTime);
 		int warningEventsCount = warningEvents.getEvents().size();
 		Object[] warningEventArgs = {new Integer(warningEventsCount), eventQuery};
-		System.out.printf("Application has %s %s events", warningEventArgs);
+		aiRow.put(eventQuery+"EVENT_COUNT",  new Integer(warningEventsCount).toString());
 		return aiRow;
 
 	}
+	
+	
 
 }
