@@ -1,24 +1,74 @@
 package org.appdynamics.appdrestapi.bayes;
 
+import java.io.File;
+import java.io.IOException;
+import java.nio.charset.Charset;
+import java.nio.file.Files;
 import java.util.Arrays;
 import java.util.Collection;
+import java.util.HashMap;
+import java.util.List;
+import java.util.Map;
 
-
+import org.apache.commons.csv.CSVFormat;
+import org.apache.commons.csv.CSVParser;
+import org.apache.commons.csv.CSVRecord;
 
 
 public class RunnableExample {
 
-	
-	
     public static void main(String[] args) {
 
+    	
+
+    	Map<String, Long> wordCountMap = new HashMap<String, Long>();
+    	
         /*
          * Create a new classifier instance. The context features are
          * Strings and the context will be classified with a String according
          * to the featureset of the context.
          */
-        final BayesClassifier<String, String> bayes =
-                new BayesClassifier<String, String>();
+    	
+    	try {
+			CSVParser parser = CSVParser.parse(new File("resources/Mandrill.csv") , Charset.defaultCharset(), CSVFormat.EXCEL);
+			List<CSVRecord>  records  = (List<CSVRecord>)parser.getRecords();
+			System.err.println(records.size());
+			for (CSVRecord fileLine : records) {
+				String line = fileLine.get(0);
+				String[] words = line.split(" ");
+				
+				for (int i = 0; i < words.length; i++) {
+					if (wordCountMap.get(words[i]) == null)
+					{
+						Long countValue = new Long(1);	
+						wordCountMap.put(words[i], countValue);
+					}else 
+					{
+						Long wordCount = wordCountMap.get(words[i]);
+						Long newWordCount = wordCount + 1;
+						wordCountMap.put(words[i], newWordCount);
+						
+					}
+				}
+			}
+		} catch (IOException e) {
+			// TODO Auto-generated catch block
+			e.printStackTrace();
+			
+		}
+    	
+    	Long item = wordCountMap.get("Using");
+    	System.out.println("Using " + item.toString());
+    	
+    	for ( Map.Entry<String, Long> wordCount  : wordCountMap.entrySet()) {
+    		String word =  wordCount.getKey();
+    		Long count =  wordCount.getValue();
+    		System.out.println("The word is " + word + " and the count is " + count.toString());
+    		
+		}
+    	
+    	
+        final BayesClassifier<String, String> bayes = new BayesClassifier<String, String>();
 
         /*
          * The classifier can learn from classifications that are handed over
