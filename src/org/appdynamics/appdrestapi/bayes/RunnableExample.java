@@ -18,13 +18,13 @@ public class RunnableExample {
 
 	Map<String, Long> wordCountMap = new HashMap<String, Long>();
 	Map<String, Long> wordCountMap2 = new HashMap<String, Long>();
-	
+
 	Map<String, Double> tokenProbabilityApp = new HashMap<String, Double>();
 	Map<String, Double> tokenProbabilityOther = new HashMap<String, Double>();
-	
+
 
 	final BayesClassifier<String, String> bayes = new BayesClassifier<String, String>();
-	
+
 	Double totalTokenCountApp = new Double(0);
 	Double totalTokenCountOther = new Double(0);
 
@@ -39,12 +39,8 @@ public class RunnableExample {
 		bayesLearnApp();
 
 		bayesLearnOther();
-		
-		
-		for (Map.Entry<String, Long> wordCount : wordCountMap2.entrySet()) {
-			String word = wordCount.getKey();
-			Long count = wordCount.getValue();
-		}
+
+
 
 		testTweets();
 
@@ -125,9 +121,9 @@ public class RunnableExample {
 	private void exeuteDataSmart() {
 		// SECOND METHOD: DATASMART METHOD
 
-		
-		
-		
+
+
+
 		// Incrementing each token count by 1 in the App category
 		for (Map.Entry<String, Long> wordCount : wordCountMap.entrySet()) {
 			String word = wordCount.getKey();
@@ -228,11 +224,11 @@ public class RunnableExample {
 					CSVFormat.EXCEL);
 			List<CSVRecord> records = (List<CSVRecord>) parser.getRecords();
 			for (CSVRecord fileLine : records) {
-				
+
 				String line = fileLine.get(0);
 				line = cleanData(line);
 				String[] words = line.split("\\s");
-				
+
 				bayes.learn("APP", Arrays.asList(words));
 
 				for (int i = 0; i < words.length; i++) {
@@ -258,14 +254,14 @@ public class RunnableExample {
 	}
 
 	private String cleanData(String line) {
-		line = line.toLowerCase();
-		line = line.replace(". ", " ");
-		line = line.replace(": ", " ");
-		line = line.replace("?", " ");
-		line = line.replace("!", " ");
-		line = line.replace(";", " ");
-		line = line.replace(",", " ");
-		return line;
+	    String newLine = line.toLowerCase();
+		newLine = newLine.replace(". ", " ");
+		newLine = newLine.replace(": ", " ");
+		newLine = newLine.replace("?", " ");
+		newLine = newLine.replace("!", " ");
+		newLine = newLine.replace(";", " ");
+		newLine = newLine.replace(",", " ");
+		return newLine;
 	}
 
 }
