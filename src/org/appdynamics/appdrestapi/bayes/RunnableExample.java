@@ -25,28 +25,36 @@ public class RunnableExample {
 
 	final BayesClassifier<String, String> bayes = new BayesClassifier<String, String>();
 
-	Double totalTokenCountApp = new Double(0);
-	Double totalTokenCountOther = new Double(0);
-
 	public static void main(String[] args) {
 
 		new RunnableExample().execute();
 
 	}
 
+	/*
+	 * // ----------------------------------------------------------
+	/**
+	 * Executes the Runnable Example class. Compares the results of the Bayes
+	 * Classifier class to the results of the DataSmart method.
+	 */
 	public void execute() {
 
-		bayesLearnApp();
+	    File Mandrill = new File("resources/Mandrill.csv");
+	    File Other = new File("resources/Other.csv");
+	    File Test = new File("resources/Test.csv");
 
-		bayesLearnOther();
+	    //Bayes Classifier learning
+	    bayesLearn(Mandrill, "APP");
+	    bayesLearn(Other, "OTHER");
 
+	    //DataSmart learning
+	    learnDS(wordCountMap, Mandrill);
+	    learnDS(wordCountMap2, Other);
+	    weightedProbability(wordCountMap, tokenProbabilityApp);
+	    weightedProbability(wordCountMap2, tokenProbabilityOther);
 
-
-		testTweets();
-
-		exeuteDataSmart();
-
-		executeTestData();
+	    //Results and comparisons
+	    executeTestData(Test);
 
 		/*
 		 * Please note, that this particular classifier implementation will
@@ -57,200 +65,194 @@ public class RunnableExample {
 										// classifications
 	}
 
-	private void executeTestData() {
-		// Now to parse the test data
-		try {
-			CSVParser parser4 = CSVParser.parse(new File("resources/Test.csv"),
-					Charset.defaultCharset(), CSVFormat.EXCEL);
-			List<CSVRecord> records4 = (List<CSVRecord>) parser4.getRecords();
-			System.err.println(records4.size());
-			for (CSVRecord fileLine : records4) {
-				String line = fileLine.get(2);
-				line = cleanData(line);
-				String[] words = line.split("\\s");
-				// Summing probabilities.
-				double appProb = 0;
-				double otherProb = 0;
-				for (int x = 0; x < words.length; x++) {
-					// App tokens
-					if (tokenProbabilityApp.get(words[x]) != null
-							&& words[x].length() > 3) {
-						appProb = tokenProbabilityApp.get(words[x]) + appProb;
-					}
-					// If token is not in map
-					else if (tokenProbabilityApp.get(words[x]) == null
-							&& words[x].length() > 3) {
-						Double tempProb = new Double(
-								Math.log(1 / totalTokenCountApp));
-						appProb = tempProb + appProb;
-					}
-					// Other tokens
-					if (tokenProbabilityOther.get(words[x]) != null
-							&& words[x].length() > 3) {
-						otherProb = tokenProbabilityOther.get(words[x])
-								+ otherProb;
-					}
-					// If token is not in map
-					else if (tokenProbabilityOther.get(words[x]) == null
-							&& words[x].length() > 3) {
-						Double tempProb2 = new Double(
-								Math.log(1 / totalTokenCountOther));
-						otherProb = tempProb2 + otherProb;
-					}
-				}
-				if (appProb > otherProb) {
-					System.out.println("APP");
-					System.out.println(appProb);
-					System.out.println(otherProb);
-				} else {
-					System.out.println("OTHER");
-					System.out.println(appProb);
-					System.out.println(otherProb);
-				}
-			}
-		} catch (IOException e) {
-			// TODO Auto-generated catch block
-			e.printStackTrace();
-		}
-
-		System.out.println(new Integer(bayes.getCategoriesTotal()).toString());
-		System.out.println(bayes.getCategories());
-		System.out.println(bayes.getFeatures());
+	/*
+	 * // ----------------------------------------------------------
+	/**
+	 * Parses a CSV file and returns a List of records from the CSV file.
+	 * @param file The CSV file to be parsed.
+	 * @return Will return a list of CSV records that have been parsed.
+	 */
+	private List<CSVRecord> parseCSV(File file) {
+	    List<CSVRecord> records = null;
+        try
+        {
+            CSVParser parser = CSVParser.parse(file, Charset.defaultCharset(),
+                CSVFormat.EXCEL);
+            records = parser.getRecords();
+        }
+        catch (IOException e)
+        {
+            // TODO Auto-generated catch block
+            e.printStackTrace();
+        }
+        return records;
 	}
 
-	private void exeuteDataSmart() {
-		// SECOND METHOD: DATASMART METHOD
-
-
-
-
-		// Incrementing each token count by 1 in the App category
-		for (Map.Entry<String, Long> wordCount : wordCountMap.entrySet()) {
-			String word = wordCount.getKey();
-			Long count = wordCount.getValue() + 1;
-			wordCountMap.put(word, count);
-			totalTokenCountApp = totalTokenCountApp + count;
-		}
-		// Calculating the probability for each token in the App category.
-		for (Map.Entry<String, Long> wordCount : wordCountMap.entrySet()) {
-			String word = wordCount.getKey();
-			Long count = wordCount.getValue();
-			Double natLogApp = new Double(Math.log(count / totalTokenCountApp));
-			tokenProbabilityApp.put(word, natLogApp);
-		}
-		// Incrementing each token count by 1 in the Other category
-		for (Map.Entry<String, Long> wordCount : wordCountMap2.entrySet()) {
-			String word = wordCount.getKey();
-			Long count = wordCount.getValue() + 1;
-			wordCountMap2.put(word, count);
-			totalTokenCountOther = totalTokenCountOther + count;
-		}
-		// Calculating the probability for each token in the Other category.
-		for (Map.Entry<String, Long> wordCount : wordCountMap2.entrySet()) {
-			String word = wordCount.getKey();
-			Long count = wordCount.getValue();
-			Double natLogOther = new Double(Math.log(count
-					/ totalTokenCountOther));
-			tokenProbabilityOther.put(word, natLogOther);
-		}
-		System.out.println("Total Token Count for App:  " + totalTokenCountApp);
-		System.out.println("Total Token Count for Other:  "	+ totalTokenCountOther);
+	/*
+	 * // ----------------------------------------------------------
+	/**
+	 * Creates a map of tokens from the CSV file.
+	 */
+	private void learnDS(Map<String, Long> map, File file) {
+	    List<CSVRecord> records = parseCSV(file);
+	    if (records != null) {
+	        for (CSVRecord fileLine : records)
+	        {
+	            String line = fileLine.get(0);
+	            line = cleanData(line);
+	            String[] words = line.split("\\s");
+	            for (int i = 0; i < words.length; i++) {
+	                if (map.get(words[i]) == null) {
+	                    if (words[i].length() > 3) {
+	                        Long countValue = new Long(1);
+	                        map.put(words[i], countValue);
+	                    }
+	                } else {
+	                    if (words[i].length() > 3) {
+	                        Long wordCount = map.get(words[i]);
+	                        Long newWordCount = wordCount + 1;
+	                        map.put(words[i], newWordCount);
+	                    }
+	                }
+	            }
+	        }
+	    }
 	}
 
-	private void testTweets() {
-		/*
-		 * Testing using the test Tweets
-		 */
-		try {
-			CSVParser parser3 = CSVParser.parse(new File("resources/Test.csv"),
-					Charset.defaultCharset(), CSVFormat.EXCEL);
-			List<CSVRecord> records3 = (List<CSVRecord>) parser3.getRecords();
-			System.err.println(records3.size());
-			for (CSVRecord fileLine : records3) {
-				String line = fileLine.get(2);
-				line = cleanData(line);
-				String[] words = line.split("\\s");
-				System.out.println(bayes.classify(Arrays.asList(words))
-						.getCategory());
-			}
-		} catch (IOException e) {
-			// TODO Auto-generated catch block
-			e.printStackTrace();
-		}
+	/*
+	 * // ----------------------------------------------------------
+	/**
+	 * Adds 1 to the count of every token.
+	 * @param wordCountMap The map containing the token and its word count.
+	 * @return Will return the new total amount of Features for the map's
+	 *  category.
+	 */
+	private void additiveSmoothing(Map<String, Long> map) {
+        for (Map.Entry<String, Long> wordCount : map.entrySet()) {
+            String word = wordCount.getKey();
+            Long count = wordCount.getValue() + 1;
+            map.put(word, count);
+        }
 	}
 
-	private void bayesLearnOther() {
-		/*
-		 * Parsing the tweets about the "other" category.
-		 */
-		try {
-			CSVParser parser2 = CSVParser.parse(
-					new File("resources/Other.csv"), Charset.defaultCharset(),
-					CSVFormat.EXCEL);
-			List<CSVRecord> records2 = (List<CSVRecord>) parser2.getRecords();
-			System.err.println(records2.size());
-			for (CSVRecord fileLine : records2) {
-				String line = fileLine.get(0);
-				line = cleanData(line);
-
-				String[] words = line.split("\\s");
-				bayes.learn("OTHER", Arrays.asList(words));
-
-				for (int i = 0; i < words.length; i++) {
-					if (wordCountMap2.get(words[i]) == null) {
-						if (words[i].length() > 3) {
-							Long countValue = new Long(1);
-							wordCountMap2.put(words[i], countValue);
-						}
-					} else {
-						if (words[i].length() > 3) {
-							Long wordCount = wordCountMap2.get(words[i]);
-							Long newWordCount = wordCount + 1;
-							wordCountMap2.put(words[i], newWordCount);
-						}
-					}
-				}
-			}
-		} catch (IOException e) {
-			// TODO Auto-generated catch block
-			e.printStackTrace();
-		}
+	/*
+	 * // ----------------------------------------------------------
+	/**
+	 * Calculates the weighted probability for each token in the map.
+	 * @param map The map that contains the features.
+	 * @param probMap The map that will contain the probability of each feature.
+	 */
+	private void weightedProbability(Map<String, Long> map,
+	    Map<String, Double> probMap) {
+	    additiveSmoothing(map);
+        for (Map.Entry<String, Long> wordCount : map.entrySet()) {
+            String word = wordCount.getKey();
+            Long count = wordCount.getValue();
+            Double prob = new Double(Math.log(count / getTokenCount(map)));
+            probMap.put(word, prob);
+        }
 	}
 
-	private void bayesLearnApp() {
-		try {
-			CSVParser parser = CSVParser.parse(new File(
-					"resources/Mandrill.csv"), Charset.defaultCharset(),
-					CSVFormat.EXCEL);
-			List<CSVRecord> records = (List<CSVRecord>) parser.getRecords();
-			for (CSVRecord fileLine : records) {
+	/*
+	 * // ----------------------------------------------------------
+	/**
+	 * Place a description of your method here.
+	 * @param map
+	 * @return
+	 */
+	private Double getTokenCount(Map<String, Long> map) {
+	    Double tCount = new Double(0);
+	    for (Map.Entry<String, Long> wordCount : map.entrySet()) {
+	        Long count = wordCount.getValue();
+	        tCount = tCount + count;
+	    }
+	    return tCount;
+	}
 
-				String line = fileLine.get(0);
-				line = cleanData(line);
-				String[] words = line.split("\\s");
+	/*
+	 * // ----------------------------------------------------------
+	/**
+	 * Place a description of your method here.
+	 * @param map
+	 * @return
+	 */
+	private Double sumProbability(Map<String, Double> map,
+	    Map<String, Long> map2, String[] words) {
+	    Double prob = new Double(0);
+	    double tC = getTokenCount(map2);
+        for (int x = 0; x < words.length; x++)
+        {
+            if (map.get(words[x]) != null
+                && words[x].length() > 3)
+            {
+                prob = map.get(words[x]) + prob;
+            }
+            // If token is not in map
+            else if (map.get(words[x]) == null
+                && words[x].length() > 3)
+            {
+                Double tempProb =
+                    new Double(Math.log(1 / tC));
+                prob = tempProb + prob;
+            }
+        }
+        return prob;
+	}
 
-				bayes.learn("APP", Arrays.asList(words));
+	/*
+	 * // ----------------------------------------------------------
+	/**
+	 * Place a description of your method here.
+	 * @param file
+	 */
+	private void executeTestData(File file) {
+	    List<CSVRecord> records = parseCSV(file);
+        for (CSVRecord fileLine : records)
+        {
+            String line = fileLine.get(2);
+            line = cleanData(line);
+            String[] words = line.split("\\s");
+            // Summing probabilities.
+            Double appProb = sumProbability(tokenProbabilityApp, wordCountMap,
+                words);
+            Double otherProb = sumProbability(tokenProbabilityOther,
+                wordCountMap2, words);
 
-				for (int i = 0; i < words.length; i++) {
-					if (wordCountMap.get(words[i]) == null) {
-						if (words[i].length() > 3) {
-							Long countValue = new Long(1);
-							wordCountMap.put(words[i], countValue);
-						}
-					} else {
-						if (words[i].length() > 3) {
-							Long wordCount = wordCountMap.get(words[i]);
-							Long newWordCount = wordCount + 1;
-							wordCountMap.put(words[i], newWordCount);
-						}
-					}
-				}
-			}
-		} catch (IOException e) {
-			// TODO Auto-generated catch block
-			e.printStackTrace();
 
-		}
+            //Results for BayesClassifier.
+            System.out.println(
+                bayes.classify(Arrays.asList(words)).getCategory() +
+                " - Bayes Classifier result");
+            //Results for DataSmart Method
+            if (appProb > otherProb)
+            {
+                System.out.println("APP - DataSmart result [");
+                System.out.println(appProb + " APP probability");
+                System.out.println(otherProb + " OTHER probability ]");
+            }
+            else
+            {
+                System.out.println("OTHER - DataSmart result [");
+                System.out.println(appProb + " APP probability");
+                System.out.println(otherProb + " OTHER probability ]");
+            }
+
+        }
+        System.out.println(new Integer(bayes.getCategoriesTotal()).toString());
+        System.out.println(bayes.getCategories());
+        System.out.println(bayes.getFeatures());
+    }
+
+	private void bayesLearn(File file, String category) {
+	    List<CSVRecord> records = parseCSV(file);
+	    for (CSVRecord fileLine : records) {
+
+	        String line = fileLine.get(0);
+	        line = cleanData(line);
+	        String[] words = line.split("\\s");
+
+	        bayes.learn(category, Arrays.asList(words));
+	    }
 	}
 
 	private String cleanData(String line) {
